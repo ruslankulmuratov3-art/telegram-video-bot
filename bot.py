@@ -280,7 +280,7 @@ async def download_direct_video(update: Update, context: ContextTypes.DEFAULT_TY
         try:
             # Обновляем статус
             await status_msg.edit_text(
-                
+                f"📥 Скачиваю видео...\n"
                 "⏳ Пожалуйста, подождите"
             )
 
