@@ -51,7 +51,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TOKEN = "8420465568:AAFWDwxTpJqn4DLjEBjVkY7Bv4mf_69n5A0"
+TOKEN = "8420465568:AAFsvWLgEBjjk5_u04TQwavHAspyFFNACwQ"
 
 # Хранилище информации о видео
 video_info_cache = {}
