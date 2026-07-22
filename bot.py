@@ -20,7 +20,7 @@ class HealthHandler(BaseHTTPRequestHandler):
 
 def start_http_server():
     try:
-        server = HTTPServer(('0.0.0.0', 8080), HealthHandler)
+        server = HTTPServer(('0.0.0.0', int(os.getenv('PORT', '8080'))), HealthHandler)
         print("✅ HTTP server started on port 8080")
         server.serve_forever()
     except Exception as e:
@@ -51,7 +51,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TOKEN = "8420465568:AAFsvWLgEBjjk5_u04TQwavHAspyFFNACwQ"
+TOKEN = os.getenv("8420465568:AAFsvWLgEBjjk5_u04TQwavHAspyFFNACwQ", "").strip()
 
 # Хранилище информации о видео
 video_info_cache = {}
@@ -107,7 +107,7 @@ def get_video_info_sync(url):
         'quiet': True,
         'no_warnings': True,
         'extract_flat': False,
-        'socket_timeout': 30,
+        'socket_timeout': 90,
         'retries': 5,
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -240,13 +240,14 @@ async def download_direct_video(update: Update, context: ContextTypes.DEFAULT_TY
         # Генерируем имя файла на основе времени
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         temp_filename = f"temp_video_{timestamp}"
+        output_template = temp_filename + ".%(ext)s"
 
         # Настройки для разных платформ
         ydl_opts = {
-            'outtmpl': temp_filename,
+            'outtmpl': output_template,
             'quiet': True,
             'no_warnings': True,
-            'socket_timeout': 30,
+            'socket_timeout': 90,
             'retries': 10,
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -288,7 +289,7 @@ async def download_direct_video(update: Update, context: ContextTypes.DEFAULT_TY
             try:
                 result = await asyncio.wait_for(
                     asyncio.get_event_loop().run_in_executor(None, download_video_sync, url, ydl_opts),
-                    timeout=60
+                    timeout=300
                 )
             except asyncio.TimeoutError:
                 await status_msg.edit_text("❌ Таймаут загрузки. Попробуйте позже.")
@@ -330,7 +331,11 @@ async def download_direct_video(update: Update, context: ContextTypes.DEFAULT_TY
                                 f"✅ ВИДЕО ЗАГРУЖЕНО!\n"
 
                             ),
-                            supports_streaming=True
+                            supports_streaming=True,
+                            read_timeout=180,
+                            write_timeout=180,
+                            connect_timeout=60,
+                            pool_timeout=60
                         )
                 except Exception as e:
                     logger.error(f"Error sending video: {e}")
@@ -341,7 +346,11 @@ async def download_direct_video(update: Update, context: ContextTypes.DEFAULT_TY
                             caption=(
                                 f"✅ ВИДЕО ЗАГРУЖЕНО!\n"
 
-                            )
+                            ),
+                            read_timeout=180,
+                            write_timeout=180,
+                            connect_timeout=60,
+                            pool_timeout=60
                         )
 
                 # Удаляем временный файл
@@ -490,6 +499,7 @@ async def download_youtube_video(update: Update, context: ContextTypes.DEFAULT_T
             safe_title = 'youtube_video'
 
         temp_filename = f"temp_{timestamp}"
+        output_template = temp_filename + ".%(ext)s"
 
         # Определяем формат для скачивания (без конвертации)
         try:
@@ -505,7 +515,7 @@ async def download_youtube_video(update: Update, context: ContextTypes.DEFAULT_T
 
         ydl_opts = {
             'format': format_str,
-            'outtmpl': temp_filename,
+            'outtmpl': output_template,
             'quiet': True,
             'no_warnings': True,
             'socket_timeout': 200,
@@ -531,7 +541,7 @@ async def download_youtube_video(update: Update, context: ContextTypes.DEFAULT_T
             try:
                 video_info = await asyncio.wait_for(
                     asyncio.get_event_loop().run_in_executor(None, download_youtube_video_sync, url, ydl_opts),
-                    timeout=120
+                    timeout=300
                 )
             except asyncio.TimeoutError:
                 await query.message.reply_text("❌ Таймаут загрузки. Слишком большое видео.")
@@ -571,7 +581,11 @@ async def download_youtube_video(update: Update, context: ContextTypes.DEFAULT_T
                                 f"✅ ВИДЕО ЗАГРУЖЕНО!\n"
 
                             ),
-                            supports_streaming=True
+                            supports_streaming=True,
+                            read_timeout=180,
+                            write_timeout=180,
+                            connect_timeout=60,
+                            pool_timeout=60
                         )
                 except Exception as e:
                     logger.error(f"Error sending video: {e}")
@@ -582,7 +596,11 @@ async def download_youtube_video(update: Update, context: ContextTypes.DEFAULT_T
                             caption=(
                                 f"✅ ВИДЕО ЗАГРУЖЕНО!\n"
 
-                            )
+                            ),
+                            read_timeout=180,
+                            write_timeout=180,
+                            connect_timeout=60,
+                            pool_timeout=60
                         )
 
                 # Удаляем временный файл
@@ -656,14 +674,15 @@ async def download_youtube_audio(update: Update, context: ContextTypes.DEFAULT_T
             safe_title = 'youtube_audio'
 
         temp_filename = f"temp_audio_{timestamp}"
+        output_template = temp_filename + ".%(ext)s"
 
         # Настройки для скачивания аудио без конвертации
         ydl_opts = {
             'format': 'bestaudio[ext=m4a]/bestaudio/best',
-            'outtmpl': temp_filename,
+            'outtmpl': output_template,
             'quiet': True,
             'no_warnings': True,
-            'socket_timeout': 60,
+            'socket_timeout': 90,
             'retries': 10,
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -685,7 +704,7 @@ async def download_youtube_audio(update: Update, context: ContextTypes.DEFAULT_T
             try:
                 audio_info = await asyncio.wait_for(
                     asyncio.get_event_loop().run_in_executor(None, download_youtube_audio_sync, url, ydl_opts),
-                    timeout=120
+                    timeout=300
                 )
             except asyncio.TimeoutError:
                 await query.message.reply_text("❌ Таймаут загрузки. Слишком большое аудио.")
@@ -729,7 +748,11 @@ async def download_youtube_audio(update: Update, context: ContextTypes.DEFAULT_T
 
                                 ),
                                 title=safe_title[:50],
-                                performer=info.get('uploader', '')[:30]
+                                performer=info.get('uploader', '')[:30],
+                                read_timeout=180,
+                                write_timeout=180,
+                                connect_timeout=60,
+                                pool_timeout=60
                             )
                     else:
                         # Если формат не поддерживается, отправляем как документ
@@ -744,7 +767,11 @@ async def download_youtube_audio(update: Update, context: ContextTypes.DEFAULT_T
                             caption=(
                                 f"✅ АУДИО ЗАГРУЖЕНО!\n"
 
-                            )
+                            ),
+                            read_timeout=180,
+                            write_timeout=180,
+                            connect_timeout=60,
+                            pool_timeout=60
                         )
 
                 # Удаляем временный файл
@@ -864,6 +891,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 def main():
+    if not TOKEN:
+        raise RuntimeError("Не задан BOT_TOKEN в Render Environment")
+
     print("🎬 VIDEO DOWNLOADER запускается...")
     print("=" * 50)
     print("📦 Установите необходимые библиотеки:")
@@ -909,8 +939,7 @@ def main():
         drop_pending_updates=True,
         timeout=30,
         poll_interval=0.5,
-        allowed_updates=None,
-        close_loop=False
+        allowed_updates=None
     )
 
 if __name__ == "__main__":
