@@ -21,7 +21,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TOKEN = os.getenv("8420465568:AAFsvWLgEBjjk5_u04TQwavHAspyFFNACwQ", "").strip()
+TOKEN = os.getenv("BOT_TOKEN", "").strip()
 PORT = int(os.getenv("PORT", "10000"))
 BASE_URL = os.getenv(
     "RENDER_EXTERNAL_URL",
