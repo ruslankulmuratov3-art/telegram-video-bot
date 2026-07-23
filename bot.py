@@ -1,36 +1,7 @@
-# === HTTP сервер для Render ===
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from threading import Thread
-import os
-import signal
-import sys
-
-class HealthHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        if self.path == '/health':
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(b'OK')
-        else:
-            self.send_response(404)
-            self.end_headers()
-
-    def log_message(self, format, *args):
-        pass  # Отключаем логи
-
-def start_http_server():
-    try:
-        server = HTTPServer(('0.0.0.0', int(os.getenv('PORT', '8080'))), HealthHandler)
-        print("✅ HTTP server started on port 8080")
-        server.serve_forever()
-    except Exception as e:
-        print(f"⚠️ HTTP server error: {e}")
-
-Thread(target=start_http_server, daemon=True).start()
-# === КОНЕЦ ===
-
 import asyncio
 import logging
+import os
+import re
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
@@ -38,7 +9,6 @@ from telegram.ext import (
     CallbackQueryHandler, filters, ContextTypes
 )
 from yt_dlp import YoutubeDL
-import re
 
 # Отключаем большинство логов для стабильности
 logging.getLogger('httpx').setLevel(logging.WARNING)
@@ -52,6 +22,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 TOKEN = os.getenv("8420465568:AAFsvWLgEBjjk5_u04TQwavHAspyFFNACwQ", "").strip()
+PORT = int(os.getenv("PORT", "10000"))
+BASE_URL = os.getenv(
+    "RENDER_EXTERNAL_URL",
+    "https://telegram-video-bot-5evo.onrender.com"
+).rstrip("/")
+WEBHOOK_PATH = os.getenv("WEBHOOK_PATH", "telegram-webhook").strip("/")
+WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "").strip() or None
+WEBHOOK_URL = f"{BASE_URL}/{WEBHOOK_PATH}"
 
 # Хранилище информации о видео
 video_info_cache = {}
@@ -894,53 +872,33 @@ def main():
     if not TOKEN:
         raise RuntimeError("Не задан BOT_TOKEN в Render Environment")
 
-    print("🎬 VIDEO DOWNLOADER запускается...")
-    print("=" * 50)
-    print("📦 Установите необходимые библиотеки:")
-    print("   pip install python-telegram-bot yt-dlp")
-    print("=" * 50)
-    print("📱 Установите FFmpeg для лучшей работы (опционально):")
-    print("   Windows: скачайте с https://ffmpeg.org/")
-    print("   Linux: sudo apt-get install ffmpeg")
-    print("   MacOS: brew install ffmpeg")
-    print("=" * 50)
+    if not BASE_URL.startswith("https://"):
+        raise RuntimeError("RENDER_EXTERNAL_URL должен начинаться с https://")
 
-    # Проверяем наличие yt-dlp
-    try:
-        import yt_dlp
-        print("✅ yt-dlp установлен")
-    except ImportError:
-        print("❌ yt-dlp не установлен. Установите: pip install yt-dlp")
-        exit(1)
+    print("🎬 VIDEO DOWNLOADER запускается через WEBHOOK...")
+    print(f"🌐 Webhook URL: {WEBHOOK_URL}")
+    print(f"🔌 Port: {PORT}")
 
-    # Проверяем наличие python-telegram-bot
-    try:
-        import telegram
-        print("✅ python-telegram-bot установлен")
-    except ImportError:
-        print("❌ python-telegram-bot не установлен. Установите: pip install python-telegram-bot")
-        exit(1)
-
-    # Создаем приложение
     app = ApplicationBuilder().token(TOKEN).build()
 
-    # Регистрируем обработчики
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_link))
 
-    print("✅ Бот запущен и готов к работе!")
+    print("✅ Бот запущен через webhook!")
     print("📥 Просто отправьте ссылку на видео!")
-    print("=" * 50)
 
-    # Запускаем бота
-    app.run_polling(
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        url_path=WEBHOOK_PATH,
+        webhook_url=WEBHOOK_URL,
+        secret_token=WEBHOOK_SECRET,
         drop_pending_updates=True,
-        timeout=30,
-        poll_interval=0.5,
-        allowed_updates=None
+        allowed_updates=Update.ALL_TYPES,
     )
+
 
 if __name__ == "__main__":
     main()
