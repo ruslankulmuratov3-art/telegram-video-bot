@@ -895,7 +895,7 @@ def main():
         url_path=WEBHOOK_PATH,
         webhook_url=WEBHOOK_URL,
         secret_token=WEBHOOK_SECRET,
-        drop_pending_updates=True,
+        drop_pending_updates=False,
         allowed_updates=Update.ALL_TYPES,
     )
 
