@@ -3,7 +3,7 @@ import logging
 import os
 import re
 from datetime import datetime
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
     CallbackQueryHandler, filters, ContextTypes
@@ -39,6 +39,14 @@ messages_to_delete = {}
 # Семафор для ограничения одновременных загрузок
 download_semaphore = asyncio.Semaphore(2)
 
+def create_menu_keyboard():
+    """Создает клавиатуру меню как на картинке"""
+    keyboard = [
+        [KeyboardButton("/start    скачать видео")],
+        [KeyboardButton("help   помощь")],
+        [KeyboardButton("Меню    Сообщение...")]
+    ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = (
@@ -56,9 +64,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         message,
         parse_mode='Markdown',
-        reply_markup=ReplyKeyboardRemove()
+        reply_markup=create_menu_keyboard()
     )
 
+async def show_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Показывает меню"""
+    await update.message.reply_text(
+        "📱 **Меню бота:**\n\n"
+        "• Отправьте ссылку на видео для скачивания\n"
+        "• Используйте кнопки ниже для навигации\n"
+        "• Для помощи нажмите /help",
+        reply_markup=create_menu_keyboard()
+    )
 
 def get_video_info_sync(url):
     """Синхронная версия получения информации о видео"""
@@ -788,11 +805,14 @@ async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обрабатывает отправленную ссылку"""
     text = update.message.text.strip()
 
-    # Поддержка старых текстовых кнопок после обновления
-    if text == "help   помощь" or text.lower() == "help":
+    # Проверяем, является ли текст командой меню
+    if text == "Меню    Сообщение..." or text == "Меню":
+        await show_menu(update, context)
+        return
+    elif text == "help   помощь" or text.lower() == "help":
         await help_command(update, context)
         return
-    if text == "/start    скачать видео":
+    elif text == "/start    скачать видео":
         await start(update, context)
         return
 
@@ -837,12 +857,13 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✅ Поддерживаемые платформы:\n"
         "• TikTok - сразу видео\n"
         "• Instagram - Reels/Posts\n\n"
-        "⚡ Команды: /start и /help"
+        "⚡ Начните с команды /start\n\n"
+        "📱 Используйте кнопки меню для навигации"
     )
 
     await update.message.reply_text(
         help_text,
-        reply_markup=ReplyKeyboardRemove()
+        reply_markup=create_menu_keyboard()
     )
 
 def main():
