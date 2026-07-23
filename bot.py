@@ -54,10 +54,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "────────────────────\n"
         "📥 **Отправьте ссылку для скачивания:**\n\n"
         "✅ **Поддерживаемые платформы:**\n"
-        "• YouTube (видео + MP3)\n"
         "• TikTok (без водяных знаков)\n"
         "• Instagram Reels/Posts\n"
-        "• Facebook, Twitter, VK\n\n"
         "⚡ **Просто отправьте ссылку!**\n"
         "────────────────────\n"
         "👇 **Ожидаю вашу ссылку...**"
@@ -111,7 +109,7 @@ def get_video_info_sync(url):
 
 async def get_video_info(url):
     """Асинхронная версия получения информации о видео"""
-    return await asyncio.get_event_loop().run_in_executor(None, get_video_info_sync, url)
+    return await asyncio.to_thread(get_video_info_sync, url)
 
 async def show_youtube_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, url: str):
     """Показывает меню для YouTube видео"""
@@ -216,7 +214,7 @@ async def download_direct_video(update: Update, context: ContextTypes.DEFAULT_TY
         messages_to_delete[user_id].append(status_msg.message_id)
 
         # Генерируем имя файла на основе времени
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         temp_filename = f"temp_video_{timestamp}"
         output_template = temp_filename + ".%(ext)s"
 
@@ -266,7 +264,7 @@ async def download_direct_video(update: Update, context: ContextTypes.DEFAULT_TY
             # Скачиваем видео асинхронно с таймаутом
             try:
                 result = await asyncio.wait_for(
-                    asyncio.get_event_loop().run_in_executor(None, download_video_sync, url, ydl_opts),
+                    asyncio.to_thread(download_video_sync, url, ydl_opts),
                     timeout=300
                 )
             except asyncio.TimeoutError:
@@ -310,8 +308,8 @@ async def download_direct_video(update: Update, context: ContextTypes.DEFAULT_TY
 
                             ),
                             supports_streaming=True,
-                            read_timeout=180,
-                            write_timeout=180,
+                            read_timeout=300,
+                            write_timeout=600,
                             connect_timeout=60,
                             pool_timeout=60
                         )
@@ -325,8 +323,8 @@ async def download_direct_video(update: Update, context: ContextTypes.DEFAULT_TY
                                 f"✅ ВИДЕО ЗАГРУЖЕНО!\n"
 
                             ),
-                            read_timeout=180,
-                            write_timeout=180,
+                            read_timeout=300,
+                            write_timeout=600,
                             connect_timeout=60,
                             pool_timeout=60
                         )
@@ -469,7 +467,7 @@ async def download_youtube_video(update: Update, context: ContextTypes.DEFAULT_T
         user_id = query.from_user.id
 
         # Генерируем имя файла на основе названия
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         safe_title = re.sub(r'[<>:"/\\|?*]', '', info.get('title', 'video'))
         safe_title = re.sub(r'[\n\r\t]', ' ', safe_title)
         safe_title = safe_title[:50].strip()
@@ -518,7 +516,7 @@ async def download_youtube_video(update: Update, context: ContextTypes.DEFAULT_T
             # Скачиваем видео асинхронно с таймаутом
             try:
                 video_info = await asyncio.wait_for(
-                    asyncio.get_event_loop().run_in_executor(None, download_youtube_video_sync, url, ydl_opts),
+                    asyncio.to_thread(download_youtube_video_sync, url, ydl_opts),
                     timeout=300
                 )
             except asyncio.TimeoutError:
@@ -560,8 +558,8 @@ async def download_youtube_video(update: Update, context: ContextTypes.DEFAULT_T
 
                             ),
                             supports_streaming=True,
-                            read_timeout=180,
-                            write_timeout=180,
+                            read_timeout=300,
+                            write_timeout=600,
                             connect_timeout=60,
                             pool_timeout=60
                         )
@@ -575,8 +573,8 @@ async def download_youtube_video(update: Update, context: ContextTypes.DEFAULT_T
                                 f"✅ ВИДЕО ЗАГРУЖЕНО!\n"
 
                             ),
-                            read_timeout=180,
-                            write_timeout=180,
+                            read_timeout=300,
+                            write_timeout=600,
                             connect_timeout=60,
                             pool_timeout=60
                         )
@@ -644,7 +642,7 @@ async def download_youtube_audio(update: Update, context: ContextTypes.DEFAULT_T
         user_id = query.from_user.id
 
         # Генерируем имя файла на основе названия
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         safe_title = re.sub(r'[<>:"/\\|?*]', '', info.get('title', 'audio'))
         safe_title = re.sub(r'[\n\r\t]', ' ', safe_title)
         safe_title = safe_title[:50].strip()
@@ -681,7 +679,7 @@ async def download_youtube_audio(update: Update, context: ContextTypes.DEFAULT_T
             # Скачиваем аудио асинхронно с таймаутом
             try:
                 audio_info = await asyncio.wait_for(
-                    asyncio.get_event_loop().run_in_executor(None, download_youtube_audio_sync, url, ydl_opts),
+                    asyncio.to_thread(download_youtube_audio_sync, url, ydl_opts),
                     timeout=300
                 )
             except asyncio.TimeoutError:
@@ -727,8 +725,8 @@ async def download_youtube_audio(update: Update, context: ContextTypes.DEFAULT_T
                                 ),
                                 title=safe_title[:50],
                                 performer=info.get('uploader', '')[:30],
-                                read_timeout=180,
-                                write_timeout=180,
+                                read_timeout=300,
+                                write_timeout=600,
                                 connect_timeout=60,
                                 pool_timeout=60
                             )
@@ -746,8 +744,8 @@ async def download_youtube_audio(update: Update, context: ContextTypes.DEFAULT_T
                                 f"✅ АУДИО ЗАГРУЖЕНО!\n"
 
                             ),
-                            read_timeout=180,
-                            write_timeout=180,
+                            read_timeout=300,
+                            write_timeout=600,
                             connect_timeout=60,
                             pool_timeout=60
                         )
@@ -824,7 +822,6 @@ async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "❌ НЕВЕРНАЯ ССЫЛКА\n"
             "────────────────────\n"
             "Отправьте корректную ссылку:\n"
-            "• https://youtube.com/watch?v=...\n"
             "• https://tiktok.com/@user/...\n"
             "• https://instagram.com/reel/...\n\n"
             "⚡ Попробуйте еще раз"
@@ -835,8 +832,10 @@ async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Определяем платформу
     if 'youtube.com' in url or 'youtu.be' in url:
-        # Для YouTube показываем меню
-        await show_youtube_menu(update, context, url)
+        await update.message.reply_text(
+            "❌ YouTube сейчас не поддерживается на сервере.\n"
+            "Отправьте ссылку из TikTok или Instagram."
+        )
 
     elif 'tiktok.com' in url or 'vm.tiktok.com' in url:
         # Для TikTok - сразу скачиваем
@@ -856,7 +855,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "────────────────────\n"
         "1. Просто отправьте ссылку на видео\n\n"
         "✅ Поддерживаемые платформы:\n"
-        "• YouTube - выбор качества + MP3\n"
         "• TikTok - сразу видео\n"
         "• Instagram - Reels/Posts\n\n"
         "⚡ Начните с команды /start\n\n"
