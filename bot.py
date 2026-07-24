@@ -82,7 +82,6 @@ HELP_TEXT = (
 
 PROCESSING_TEXT = (
     "✨ <b>Обрабатываю ссылку</b>\n"
-    "Сохраняю видео и подготавливаю музыку…"
 )
 
 INVALID_LINK_TEXT = (
